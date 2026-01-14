@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>XRP Grid Calculator</title>
+  <style>
+    :root{
+      --bg:#0b1220; --panel:#0f1b33; --panel2:#0c1730;
+      --text:#e6edf7; --muted:#9fb0c6; --line:#203253;
+      --accent:#6aa7ff; --good:#7ee0a3; --warn:#ffd479;
+      --danger:#ff6b6b;
+      --radius:12px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background:linear-gradient(180deg,var(--bg),#070b14);
+      color:var(--text);
+    }
+    .wrap{
+      max-width:980px; margin:18px auto; padding:0 14px;
+    }
+    .card{
+      background:linear-gradient(180deg,var(--panel),var(--panel2));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow: 0 8px 28px rgba(0,0,0,.35);
+      padding:12px;
+    }
+    .header{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      margin-bottom:10px;
+    }
+    .title{
+      display:flex; flex-direction:column; gap:2px;
+    }
+    .title h1{
+      font-size:14px; margin:0; letter-spacing:.2px;
+    }
+    .title .sub{
+      font-size:12px; color:var(--muted);
+    }
+    .badge{
+      font-size:12px; padding:6px 10px; border-radius:999px;
+      border:1px solid var(--line);
+      color:var(--muted);
+      background:rgba(255,255,255,.03);
+      white-space:nowrap;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap:8px;
+    }
+    .field{
+      grid-column: span 3;
+      display:flex; flex-direction:column; gap:6px;
+      padding:10px; border:1px solid var(--line);
+      border-radius:10px; background:rgba(255,255,255,.02);
+    }
+    .field label{
+      font-size:12px; color:var(--muted);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .field input, .field select{
+      width:100%;
+      background:#081127;
+      color:var(--text);
+      border:1px solid #1c2b4b;
+      border-radius:10px;
+      padding:9px 10px;
+      font-size:13px;
+      outline:none;
+    }
+    .field input:focus, .field select:focus{
+      border-color: rgba(106,167,255,.65);
+      box-shadow:0 0 0 3px rgba(106,167,255,.15);
+    }
+    .field small{
+      font-size:11px; color:var(--muted);
+    }
+    .actions{
+      grid-column: span 12;
+      display:flex; gap:8px; align-items:center; justify-content:flex-end;
+      margin-top:2px;
+    }
+    button{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+      padding:9px 12px;
+      border-radius:10px;
+      font-size:13px;
+      cursor:pointer;
+    }
+    button.primary{
+      border-color: rgba(106,167,255,.65);
+      background: rgba(106,167,255,.18);
+    }
+    button:active{ transform: translateY(1px); }
+    .summary{
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap:8px;
+      margin-top:10px;
+    }
+    .stat{
+      grid-column: span 3;
+      padding:10px;
+      border:1px solid var(--line);
+      border-radius:10px;
+      background:rgba(255,255,255,.02);
+      min-height:60px;
+    }
+    .stat .k{ font-size:11px; color:var(--muted); }
+    .stat .v{ font-size:14px; margin-top:4px; }
+    .stat .v strong{ font-weight:700; }
+    .stat .hint{ font-size:11px; color:var(--muted); margin-top:2px; }
+    .tableWrap{
+      margin-top:10px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      overflow:hidden;
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:12px;
+      background: rgba(0,0,0,.12);
+    }
+    thead th{
+      text-align:left;
+      color:var(--muted);
+      font-weight:600;
+      padding:10px 10px;
+      background: rgba(255,255,255,.03);
+      border-bottom:1px solid var(--line);
+      letter-spacing:.15px;
+    }
+    tbody td{
+      padding:9px 10px;
+      border-bottom:1px solid rgba(32,50,83,.55);
+      vertical-align:top;
+    }
+    tbody tr:hover td{
+      background: rgba(255,255,255,.02);
+    }
+    .right{text-align:right}
+    .muted{color:var(--muted)}
+    .error{
+      margin-top:10px;
+      padding:10px;
+      border-radius:10px;
+      border:1px solid rgba(255,107,107,.35);
+      background: rgba(255,107,107,.08);
+      color: #ffd0d0;
+      font-size:12px;
+      display:none;
+    }
+    @media (max-width:920px){
+      .field{ grid-column: span 6; }
+      .stat{ grid-column: span 6; }
+    }
+    @media (max-width:560px){
+      .field{ grid-column: span 12; }
+      .stat{ grid-column: span 12; }
+      .badge{ display:none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="header">
+        <div class="title">
+          <h1>XRP Grid Calculator</h1>
+          <div class="sub">สร้างตารางราคา “ลงทุก 0.1%” พร้อมคำนวณจำนวน XRP ต่อไม้ (ซื้อไม้ละ 500 บาท)</div>
+        </div>
+        <div class="badge">Theme: Dark · Compact · Formal</div>
+      </div>
+
+      <div class="grid">
+        <div class="field" style="grid-column: span 4;">
+          <label>โหมดปลายทาง <span class="muted" id="modeHint"></span></label>
+          <select id="mode">
+            <option value="percent">ลงเป็นเปอร์เซ็นต์ (เช่น 1%)</option>
+            <option value="toPrice">ลงถึงราคา (To Price)</option>
+          </select>
+          <small class="muted">เลือก “ลงเป็นเปอร์เซ็นต์” หรือ “ลงถึงราคา”</small>
+        </div>
+
+        <div class="field" style="grid-column: span 4;">
+          <label>XRP From (ราคาเริ่ม)</label>
+          <input id="fromPrice" type="number" step="0.00000001" value="2.5" />
+          <small class="muted">ตัวอย่าง: 2.5 หรือ 2.1</small>
+        </div>
+
+        <div class="field" style="grid-column: span 4;">
+          <label id="toLabel">XRP To (% ลงทั้งหมด)</label>
+          <input id="toValue" type="number" step="0.0001" value="1" />
+          <small class="muted" id="toHelp">เช่น 1 = ลง 1%</small>
+        </div>
+
+        <div class="field" style="grid-column: span 4;">
+          <label>Step (% ต่อไม้)</label>
+          <input id="stepPercent" type="number" step="0.0001" value="0.1" />
+          <small class="muted">เช่น 0.1 = ลงทีละ 0.1%</small>
+        </div>
+
+        <div class="field" style="grid-column: span 4;">
+          <label>เงินต่อไม้ (THB)</label>
+          <input id="amountTHB" type="number" step="1" value="500" />
+          <small class="muted">ซื้อไม้ละกี่บาท</small>
+        </div>
+
+        <div class="field" style="grid-column: span 4;">
+          <label>ปัดทศนิยมราคา</label>
+          <select id="priceDecimals">
+            <option value="6">6 ตำแหน่ง</option>
+            <option value="8" selected>8 ตำแหน่ง</option>
+            <option value="4">4 ตำแหน่ง</option>
+          </select>
+          <small class="muted">แสดงราคาให้กระชับ</small>
+        </div>
+
+        <div class="actions">
+          <button id="btnExampleA" title="From 2.5 ลง 1% step 0.1%">ตัวอย่าง 2.5 → -1%</button>
+          <button id="btnExampleB" title="From 2.1 ลง 1% step 0.1%">ตัวอย่าง 2.1 → -1%</button>
+          <button class="primary" id="btnCalc">คำนวณ</button>
+        </div>
+      </div>
+
+      <div class="error" id="errBox"></div>
+
+      <div class="summary">
+        <div class="stat">
+          <div class="k">จำนวนไม้</div>
+          <div class="v"><strong id="sCount">-</strong></div>
+          <div class="hint muted">ceil(ช่วงลง / step)</div>
+        </div>
+        <div class="stat">
+          <div class="k">ราคาสุดท้าย</div>
+          <div class="v"><strong id="sEndPrice">-</strong> <span class="muted">XRP</span></div>
+          <div class="hint muted">ตามโหมดที่เลือก</div>
+        </div>
+        <div class="stat">
+          <div class="k">เงินรวมที่ใช้</div>
+          <div class="v"><strong id="sTotalTHB">-</strong> <span class="muted">THB</span></div>
+          <div class="hint muted">เงินต่อไม้ × จำนวนไม้</div>
+        </div>
+        <div class="stat">
+          <div class="k">XRP รวม (ประมาณ)</div>
+          <div class="v"><strong id="sTotalXRP">-</strong> <span class="muted">XRP</span></div>
+          <div class="hint muted">รวม (THB/ราคา)</div>
+        </div>
+      </div>
+
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:70px">#</th>
+              <th>Drop</th>
+              <th class="right">Price</th>
+              <th class="right">THB / Order</th>
+              <th class="right">XRP / Order</th>
+              <th class="right">Cum THB</th>
+              <th class="right">Cum XRP</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr><td colspan="7" class="muted">กด “คำนวณ” เพื่อสร้างตาราง</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /*
+      Functions in this app:
+      - setModeUI(mode)
+      - fmtNum(n, decimals)
+      - clamp(n, min, max)
+      - calcGridRowsLinear(fromPrice, endPrice, stepPercent, amountTHB, priceDecimals)
+      - computeEndPrice(fromPrice, mode, toValue)
+      - render(rows, summary)
+      - showError(msg), clearError()
+      - readInputs()
+      - init()
+    */
+
+    const $ = (id) => document.getElementById(id);
+
+    function setModeUI(mode){
+      if(mode === "percent"){
+        $("toLabel").textContent = "XRP To (% ลงทั้งหมด)";
+        $("toHelp").textContent = "เช่น 1 = ลง 1%";
+        $("toValue").step = "0.0001";
+        $("toValue").value = $("toValue").value || "1";
+        $("modeHint").textContent = "Percent";
+      }else{
+        $("toLabel").textContent = "XRP To (ราคาปลายทาง)";
+        $("toHelp").textContent = "เช่น 2.475 = จาก 2.5 ลง 1%";
+        $("toValue").step = "0.00000001";
+        $("toValue").value = $("toValue").value || "2.475";
+        $("modeHint").textContent = "To Price";
+      }
+    }
+
+    function fmtNum(n, decimals){
+      if(!Number.isFinite(n)) return "-";
+      return n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: decimals });
+    }
+
+    function clamp(n, min, max){
+      return Math.min(Math.max(n, min), max);
+    }
+
+    // Linear percent steps from "fromPrice" (not compounding):
+    // price(k) = fromPrice * (1 - (k * stepPercent)/100)
+    function calcGridRowsLinear(fromPrice, endPrice, stepPercent, amountTHB, priceDecimals){
+      const rows = [];
+      const step = stepPercent / 100;
+
+      if(endPrice >= fromPrice) {
+        throw new Error("ปลายทางต้องน้อยกว่าราคาเริ่ม (To ต้อง < From)");
+      }
+
+      const totalDropRatio = (fromPrice - endPrice) / fromPrice; // e.g. 0.01 for 1%
+      const n = Math.ceil(totalDropRatio / step); // number of orders
+      if(n <= 0) return { rows: [], n: 0 };
+
+      let cumTHB = 0;
+      let cumXRP = 0;
+
+      for(let i=1; i<=n; i++){
+        const dropRatio = i * step; // e.g. 0.001, 0.002...
+        let price = fromPrice * (1 - dropRatio);
+
+        // avoid going below endPrice by too much because of ceil
+        if(price < endPrice) price = endPrice;
+
+        const xrp = amountTHB / price;
+
+        cumTHB += amountTHB;
+        cumXRP += xrp;
+
+        rows.push({
+          i,
+          dropPct: i * stepPercent,
+          price,
+          amountTHB,
+          xrp,
+          cumTHB,
+          cumXRP,
+          priceDecimals
+        });
+
+        if(price <= endPrice + 1e-12) break; // reached end
+      }
+
+      return { rows, n: rows.length };
+    }
+
+    function computeEndPrice(fromPrice, mode, toValue){
+      if(mode === "percent"){
+        const dropPct = toValue;
+        return fromPrice * (1 - (dropPct/100));
+      }
+      return toValue; // toPrice
+    }
+
+    function render(rows, summary){
+      $("sCount").textContent = summary.count.toLocaleString();
+      $("sEndPrice").textContent = fmtNum(summary.endPrice, summary.priceDecimals);
+      $("sTotalTHB").textContent = fmtNum(summary.totalTHB, 2);
+      $("sTotalXRP").textContent = fmtNum(summary.totalXRP, 8);
+
+      const tb = $("tbody");
+      tb.innerHTML = "";
+
+      if(rows.length === 0){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td colspan="7" class="muted">ไม่มีรายการ (ตรวจสอบค่าอินพุต)</td>`;
+        tb.appendChild(tr);
+        return;
+      }
+
+      for(const r of rows){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${r.i}</td>
+          <td><span class="muted">-${fmtNum(r.dropPct, 4)}%</span></td>
+          <td class="right">${fmtNum(r.price, r.priceDecimals)}</td>
+          <td class="right">${fmtNum(r.amountTHB, 2)}</td>
+          <td class="right">${fmtNum(r.xrp, 8)}</td>
+          <td class="right">${fmtNum(r.cumTHB, 2)}</td>
+          <td class="right">${fmtNum(r.cumXRP, 8)}</td>
+        `;
+        tb.appendChild(tr);
+      }
+    }
+
+    function showError(msg){
+      const box = $("errBox");
+      box.textContent = msg;
+      box.style.display = "block";
+    }
+
+    function clearError(){
+      const box = $("errBox");
+      box.textContent = "";
+      box.style.display = "none";
+    }
+
+    function readInputs(){
+      const mode = $("mode").value;
+      const fromPrice = Number($("fromPrice").value);
+      const toValue = Number($("toValue").value);
+      const stepPercent = Number($("stepPercent").value);
+      const amountTHB = Number($("amountTHB").value);
+      const priceDecimals = Number($("priceDecimals").value);
+
+      if(!Number.isFinite(fromPrice) || fromPrice <= 0) throw new Error("XRP From ต้องมากกว่า 0");
+      if(!Number.isFinite(toValue) || toValue <= 0) throw new Error("XRP To ต้องมากกว่า 0");
+      if(!Number.isFinite(stepPercent) || stepPercent <= 0) throw new Error("Step ต้องมากกว่า 0");
+      if(stepPercent > 10) throw new Error("Step สูงเกินไป (แนะนำ ≤ 1%)");
+      if(!Number.isFinite(amountTHB) || amountTHB <= 0) throw new Error("เงินต่อไม้ต้องมากกว่า 0");
+
+      const endPrice = computeEndPrice(fromPrice, mode, toValue);
+
+      return { mode, fromPrice, toValue, endPrice, stepPercent, amountTHB, priceDecimals };
+    }
+
+    function init(){
+      setModeUI($("mode").value);
+
+      $("mode").addEventListener("change", () => {
+        setModeUI($("mode").value);
+      });
+
+      $("btnExampleA").addEventListener("click", () => {
+        $("mode").value = "percent";
+        setModeUI("percent");
+        $("fromPrice").value = "2.5";
+        $("toValue").value = "1";
+        $("stepPercent").value = "0.1";
+        $("amountTHB").value = "500";
+        $("btnCalc").click();
+      });
+
+      $("btnExampleB").addEventListener("click", () => {
+        $("mode").value = "percent";
+        setModeUI("percent");
+        $("fromPrice").value = "2.1";
+        $("toValue").value = "1";
+        $("stepPercent").value = "0.1";
+        $("amountTHB").value = "500";
+        $("btnCalc").click();
+      });
+
+      $("btnCalc").addEventListener("click", () => {
+        clearError();
+        try{
+          const inp = readInputs();
+
+          // Linear-grid steps from starting price (NOT compounding).
+          // If you want compounding steps later, tell me, I’ll add a toggle.
+          const { rows } = calcGridRowsLinear(
+            inp.fromPrice,
+            inp.endPrice,
+            inp.stepPercent,
+            inp.amountTHB,
+            inp.priceDecimals
+          );
+
+          const totalTHB = rows.length * inp.amountTHB;
+          const totalXRP = rows.length ? rows[rows.length - 1].cumXRP : 0;
+
+          render(rows, {
+            count: rows.length,
+            endPrice: inp.endPrice,
+            totalTHB,
+            totalXRP,
+            priceDecimals: inp.priceDecimals
+          });
+        }catch(e){
+          showError(e.message || String(e));
+        }
+      });
+
+      // auto-calc on load
+      $("btnCalc").click();
+    }
+
+    init();
+  </script>
+</body>
+</html>
